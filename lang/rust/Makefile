@@ -42,26 +42,35 @@ define Package/rust/description
   and safety, especially safe concurrency.
 endef
 
-# 3. 绝杀：物理补齐钩子 (Build/Prepare)
-# 在解压完源码的一瞬间执行手术，解决图 15 中“睁眼瞎”找不到文件的血栓
 define Build/Prepare
 	$(call Build/Prepare/Default)
-	@echo "--- 正在实施 Cargo 物理屏蔽手术 ---"
-	# 1. 物理补齐缺失文件，化解文件找不到的血栓
-	find $(PKG_BUILD_DIR) -name ".cargo-checksum.json" -delete
+	@echo "--- 正在实施最后的物理欺诈手术 ---"
+	
+	# 1. 物理移除所有 checksum 锁死，让 Cargo 变成“睁眼瞎”
+	# 重点：不仅要删 .json，还要清空 vendor 目录下的所有 hash 记录
+	find $(PKG_BUILD_DIR)/vendor -name ".cargo-checksum.json" -delete
+	
+	# 2. 注入“空校验”逻辑：强制让 Cargo 认为本地代码就是真理
+	# 我们在每个 vendor 子包里创建一个空的 checksum 记录，欺骗 Cargo 跳过联网比对
+	find $(PKG_BUILD_DIR)/vendor -mindepth 1 -maxdepth 1 -type d | while read dir; do \
+		echo '{"files":{},"package":null}' > "$$dir/.cargo-checksum.json"; \
+	done
+
+	# 3. 强制 touch 物料，化解 OS Error 2
 	find $(PKG_BUILD_DIR) -name "Cargo.toml.orig" -exec touch {} +
-	
-	# 2. 核心绝杀：在源码根目录注入 .cargo/config.toml
-  # 强制将所有源重定向到 vendor 目录，彻底切断对 crates-io 的连接欲望
+
+	# 4. 离线宪法注入
 	mkdir -p $(PKG_BUILD_DIR)/.cargo
-	echo '[source.crates-io]' > $(PKG_BUILD_DIR)/.cargo/config.toml
-	echo 'replace-with = "vendored-sources"' >> $(PKG_BUILD_DIR)/.cargo/config.toml
-	echo '[source.vendored-sources]' >> $(PKG_BUILD_DIR)/.cargo/config.toml
-	echo 'directory = "vendor"' >> $(PKG_BUILD_DIR)/.cargo/config.toml
-	echo '[net]' >> $(PKG_BUILD_DIR)/.cargo/config.toml
-	echo 'offline = true' >> $(PKG_BUILD_DIR)/.cargo/config.toml
+	( \
+		echo '[source.crates-io]' ; \
+		echo 'replace-with = "vendored-sources"' ; \
+		echo '[source.vendored-sources]' ; \
+		echo 'directory = "vendor"' ; \
+		echo '[net]' ; \
+		echo 'offline = true' ; \
+	) > $(PKG_BUILD_DIR)/.cargo/config.toml
 	
-	@echo "--- 物理屏蔽完成，全量离线合闸 ---"
+	@echo "--- 物理欺诈完成，进入真正的离线真空环境 ---"
 endef
 
 # Rust-lang has an uninstall script

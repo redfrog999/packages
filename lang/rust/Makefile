@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # Copyright (C) 2023 Luca Barbato and Donald Hoskins
-# 🧬 逻辑对齐改造版：解耦挂逼官网，实现 2.3GHz 百里极致编译
+# 🛡️ 2026.02 离线主权版：彻底切断官网联系，实现 2.3GHz 百里全量合闸
 
 include $(TOPDIR)/rules.mk
 
@@ -9,10 +9,9 @@ PKG_NAME:=rust
 PKG_VERSION:=1.90.0
 PKG_RELEASE:=1
 
+# 🎯 物理物料对齐：确保与你提供的 URL 完全一致
 PKG_SOURCE:=rustc-$(PKG_VERSION)-src.tar.xz
-# 1. 物理切断自杀路径：强制指向私有高带宽 Release
-PKG_SOURCE_URL:=https://github.com/redfrog999/JDCloud-AX6000/releases/download/rustc_1.9.0/
-# 2. 物理豁免权：直接跳过 Hash，不给系统报错的机会
+PKG_SOURCE_URL:=https://github.com/redfrog999/JDCloud-AX6000/releases/download/rustc_1.90.0/
 PKG_HASH:=skip
 
 HOST_BUILD_DIR:=$(BUILD_DIR)/host/rustc-$(PKG_VERSION)-src
@@ -37,29 +36,23 @@ define Package/rust
   DEPENDS:=$(RUST_ARCH_DEPENDS)
 endef
 
-define Package/rust/description
-  Rust is a multi-paradigm, general-purpose programming language designed for performance
-  and safety, especially safe concurrency.
-endef
-
+# 🏗️ 核心：Build/Prepare 物理欺诈手术
 define Build/Prepare
 	$(call Build/Prepare/Default)
-	@echo "--- 正在实施最后的物理欺诈手术 ---"
-	
-	# 1. 物理移除所有 checksum 锁死，让 Cargo 变成“睁眼瞎”
-	# 重点：不仅要删 .json，还要清空 vendor 目录下的所有 hash 记录
+	@echo "--- 正在实施离线真空屏蔽手术，对齐物料：$(PKG_SOURCE) ---"
+
+	# 1. 物理抹除校验：废除 Cargo 的“联网对账”动机
 	find $(PKG_BUILD_DIR)/vendor -name ".cargo-checksum.json" -delete
 	
-	# 2. 注入“空校验”逻辑：强制让 Cargo 认为本地代码就是真理
-	# 我们在每个 vendor 子包里创建一个空的 checksum 记录，欺骗 Cargo 跳过联网比对
+	# 2. 注入“空白圣经”：强迫 Cargo 认为本地 vendor 是唯一的真理
 	find $(PKG_BUILD_DIR)/vendor -mindepth 1 -maxdepth 1 -type d | while read dir; do \
 		echo '{"files":{},"package":null}' > "$$dir/.cargo-checksum.json"; \
 	done
 
-	# 3. 强制 touch 物料，化解 OS Error 2
+	# 3. 补齐 orig 文件：防止 Actions 环境报 OS Error 2
 	find $(PKG_BUILD_DIR) -name "Cargo.toml.orig" -exec touch {} +
 
-	# 4. 离线宪法注入
+	# 4. 注入离线宪法：在源码根目录强制配置 config.toml
 	mkdir -p $(PKG_BUILD_DIR)/.cargo
 	( \
 		echo '[source.crates-io]' ; \
@@ -70,24 +63,11 @@ define Build/Prepare
 		echo 'offline = true' ; \
 	) > $(PKG_BUILD_DIR)/.cargo/config.toml
 	
-	@echo "--- 物理欺诈完成，进入真正的离线真空环境 ---"
+	@echo "--- 物理屏蔽完成，开始 A53 2.3GHz 源码级咆哮编译 ---"
 endef
 
-# Rust-lang has an uninstall script
-RUST_UNINSTALL:=$(STAGING_DIR)/host/lib/rustlib/uninstall.sh
-
-# Target Flags
-TARGET_CONFIGURE_ARGS = \
-    --set=target.$(RUSTC_TARGET_ARCH).ar=$(TARGET_AR) \
-    --set=target.$(RUSTC_TARGET_ARCH).cc=$(TARGET_CC_NOCACHE) \
-    --set=target.$(RUSTC_TARGET_ARCH).cxx=$(TARGET_CXX_NOCACHE) \
-    --set=target.$(RUSTC_TARGET_ARCH).linker=$(TARGET_CC_NOCACHE) \
-    --set=target.$(RUSTC_TARGET_ARCH).ranlib=$(TARGET_RANLIB) \
-    --set=target.$(RUSTC_TARGET_ARCH).crt-static=false \
-    $(if $(CONFIG_USE_MUSL),--set=target.$(RUSTC_TARGET_ARCH).musl-root=$(TOOLCHAIN_ROOT_DIR))
-
-# CARGO_HOME is an environmental
-HOST_CONFIGURE_VARS += CARGO_HOME="$(CARGO_HOME)"
+# 强制开启 Cargo 离线模式环境变量
+HOST_CONFIGURE_VARS += CARGO_HOME="$(CARGO_HOME)" CARGO_NET_OFFLINE=true
 
 # Rust Configuration Arguments
 HOST_CONFIGURE_ARGS = \
@@ -106,18 +86,14 @@ HOST_CONFIGURE_ARGS = \
     --enable-cargo-native-static \
     --bootstrap-cache-path=$(DL_DIR)/rustc \
     --set=llvm.download-ci-llvm=false \
+    --set=build.configure-args="['--enable-vendor']" \
     $(TARGET_CONFIGURE_ARGS)
-
-define Host/Uninstall
-    [ -f $(RUST_UNINSTALL) ] && \
-        $(BASH) $(RUST_UNINSTALL) || echo No Uninstall
-endef
 
 define Host/Compile
     $(RUST_SCCACHE_VARS) \
     CARGO_HOME=$(CARGO_HOME) \
-    TARGET_CFLAGS="$(TARGET_CFLAGS)" \
     CARGO_NET_OFFLINE=true \
+    TARGET_CFLAGS="$(TARGET_CFLAGS)" \
     $(PYTHON) $(HOST_BUILD_DIR)/x.py \
         --ci false \
         --build-dir $(HOST_BUILD_DIR)/build \

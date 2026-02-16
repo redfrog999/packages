@@ -46,11 +46,22 @@ endef
 # 在解压完源码的一瞬间执行手术，解决图 15 中“睁眼瞎”找不到文件的血栓
 define Build/Prepare
 	$(call Build/Prepare/Default)
-	@echo "--- 正在对齐 A53 咆哮版物理物料 ---"
+	@echo "--- 正在实施 Cargo 物理屏蔽手术 ---"
+	# 1. 物理补齐缺失文件，化解文件找不到的血栓
 	find $(PKG_BUILD_DIR) -name ".cargo-checksum.json" -delete
 	find $(PKG_BUILD_DIR) -name "Cargo.toml.orig" -exec touch {} +
-	find $(PKG_BUILD_DIR) -name "*.json" -exec touch {} +
-	@echo "--- 物理补齐完成，全量合闸 ---"
+	
+	# 2. 核心绝杀：在源码根目录注入 .cargo/config.toml
+  # 强制将所有源重定向到 vendor 目录，彻底切断对 crates-io 的连接欲望
+	mkdir -p $(PKG_BUILD_DIR)/.cargo
+	echo '[source.crates-io]' > $(PKG_BUILD_DIR)/.cargo/config.toml
+	echo 'replace-with = "vendored-sources"' >> $(PKG_BUILD_DIR)/.cargo/config.toml
+	echo '[source.vendored-sources]' >> $(PKG_BUILD_DIR)/.cargo/config.toml
+	echo 'directory = "vendor"' >> $(PKG_BUILD_DIR)/.cargo/config.toml
+	echo '[net]' >> $(PKG_BUILD_DIR)/.cargo/config.toml
+	echo 'offline = true' >> $(PKG_BUILD_DIR)/.cargo/config.toml
+	
+	@echo "--- 物理屏蔽完成，全量离线合闸 ---"
 endef
 
 # Rust-lang has an uninstall script

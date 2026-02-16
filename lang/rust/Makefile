@@ -89,15 +89,19 @@ HOST_CONFIGURE_ARGS = \
     --set=build.configure-args="['--enable-vendor']" \
     $(TARGET_CONFIGURE_ARGS)
 
+# 在 Host/Compile 段落中，强制清空所有可能导致联网的全局钩子
 define Host/Compile
-    $(RUST_SCCACHE_VARS) \
-    CARGO_HOME=$(CARGO_HOME) \
-    CARGO_NET_OFFLINE=true \
-    TARGET_CFLAGS="$(TARGET_CFLAGS)" \
-    $(PYTHON) $(HOST_BUILD_DIR)/x.py \
-        --ci false \
-        --build-dir $(HOST_BUILD_DIR)/build \
-        dist build-manifest rustc rust-std cargo llvm-tools rust-src
+	$(RUST_SCCACHE_VARS) \
+	CARGO_HOME=$(CARGO_HOME) \
+	CARGO_NET_OFFLINE=true \
+	RUST_BACKTRACE=1 \
+	RUSTC_BOOTSTRAP=1 \
+	$(PYTHON) $(HOST_BUILD_DIR)/x.py \
+		--ci false \
+		--build-dir $(HOST_BUILD_DIR)/build \
+		--locked \
+		--offline \
+		dist build-manifest rustc rust-std cargo llvm-tools rust-src
 endef
 
 define Host/Install
